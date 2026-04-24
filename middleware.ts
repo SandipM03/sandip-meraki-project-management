@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const publicRoutes = ["/login", "/signup", "/"];
-const protectedRoutes = ["/dashboard", "/projects", "/tasks"];
+const AUTH_COOKIE_NAME = process.env.AUTH_COOKIE_NAME || "auth_token";
+const protectedRoutes = ["/dashboard", "/projects", "/tasks", "/clients", "/team"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const token = request.cookies.get("better-auth.session_token")?.value;
+  const token = request.cookies.get(AUTH_COOKIE_NAME)?.value;
 
   
   if (token && (pathname === "/login" || pathname === "/signup")) {

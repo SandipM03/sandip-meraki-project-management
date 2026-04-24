@@ -1,8 +1,10 @@
 "use client";
 
-import { useSession, signOut } from "@/lib/auth-client";
+import { useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { Navbar } from "@/components/navbar";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function DashboardPage() {
   const { data: session, isPending } = useSession();
@@ -15,7 +17,7 @@ export default function DashboardPage() {
   }, [session, isPending, router]);
 
   if (isPending) {
-    return <div>Loading...</div>;
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
 
   if (!session) {
@@ -23,33 +25,66 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold">Meraki Project Management System</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-gray-700">{session.user.email}</span>
-            <button
-              onClick={async () => {
-                await signOut();
-                router.push("/login");
-              }}
-              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-            >
-              Sign Out
-            </button>
+    <>
+      <Navbar />
+      <main className="flex-1 overflow-y-auto p-6">
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold">Welcome back, {session.user.name || session.user.email}!</h1>
+            <p className="text-muted-foreground mt-2">Here's an overview of your projects</p>
           </div>
-        </div>
-      </nav>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-2xl font-bold mb-4">{session.user.name || session.user.email}!</h2>
-          <p className="text-gray-600">
-            dashboard
-          </p>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">0</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Active Tasks</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">0</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Clients</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">0</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Team Members</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">0</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Links</CardTitle>
+              <CardDescription>Get started by navigating to different sections</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-muted-foreground">
+                Use the sidebar to navigate to Projects, Clients, Tasks, and Team sections.
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </main>
-    </div>
+    </>
   );
 }
