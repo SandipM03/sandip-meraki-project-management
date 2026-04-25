@@ -1,42 +1,8 @@
-import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
-import { Pool } from "pg";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { prisma } from "@/lib/prisma";
 
-// Proper singleton pattern for PrismaClient
-const globalForPrisma = global as unknown as {
-  pool: Pool | undefined;
-  prisma: PrismaClient | undefined;
-};
-
-const databaseUrl = process.env.DATABASE_URL;
-
-if (!databaseUrl) {
-  throw new Error("DATABASE_URL is not set");
-}
-
-const pool =
-  globalForPrisma.pool ||
-  new Pool({
-    connectionString: databaseUrl,
-  });
-
-const adapter = new PrismaPg(pool);
-
-export const prisma =
-  globalForPrisma.prisma ||
-  new PrismaClient({
-    adapter,
-    errorFormat: "pretty",
-  });
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.pool = pool;
-  globalForPrisma.prisma = prisma;
-}
-
-export const AUTH_COOKIE_NAME = "auth_token";
+export const AUTH_COOKIE_NAME = process.env.AUTH_COOKIE_NAME || "auth_token";
 const JWT_SECRET =
   process.env.JWT_SECRET || "";
 
