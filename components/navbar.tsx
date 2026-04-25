@@ -8,7 +8,7 @@ export function Navbar() {
   const { data: session } = useSession();
 
   return (
-    <nav className="border-b bg-white">
+    <nav className="border-b bg-white text-black text-bold">
       <div className="flex h-16 items-center justify-between px-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" className="md:hidden">
