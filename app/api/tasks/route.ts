@@ -1,4 +1,5 @@
-import { AUTH_COOKIE_NAME, prisma, verifyAuthToken } from "@/lib/auth";
+import { AUTH_COOKIE_NAME, verifyAuthToken } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { Prisma, TaskStatus } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
