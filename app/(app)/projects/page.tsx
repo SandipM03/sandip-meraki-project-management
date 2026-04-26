@@ -78,10 +78,12 @@ export default function ProjectsPage() {
       fetch("/api/clients", { credentials: "include" })
         .then((res) => res.json())
         .then((data) => setClients(Array.isArray(data) ? data : []));
-      // A real app would have a /api/users endpoint
       fetch("/api/tasks", { credentials: "include" })
         .then((res) => res.json())
-        .then((data) => setUsers(Array.isArray(data?.users) ? data.users : []));
+        .then((data) => {
+          const users = data?.data?.users || (Array.isArray(data?.users) ? data.users : []);
+          setUsers(users);
+        });
     }
   }, [session]);
 
@@ -143,7 +145,7 @@ export default function ProjectsPage() {
   };
 
   if (isPending) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+    return <div className="flex items-center justify-center h-screen">Loading…</div>;
   }
 
   if (!session) {
@@ -153,17 +155,17 @@ export default function ProjectsPage() {
   return (
     <>
       <Navbar />
-      <main className="flex-1 overflow-y-auto p-6">
-        <div className="space-y-6">
+      <main className="flex-1 overflow-y-auto p-6 bg-gray-50/50 dark:bg-gray-900/50">
+        <div className="max-w-7xl mx-auto space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold">Projects</h1>
-              <p className="text-muted-foreground mt-2">View and manage all your projects</p>
+              <h1 className="text-2xl font-bold">Projects</h1>
+              <p className="text-muted-foreground mt-1">View and manage all your projects.</p>
             </div>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <Card>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <Card className="lg:col-span-1 xl:col-span-1">
               <CardHeader>
                 <CardTitle>Create Project</CardTitle>
               </CardHeader>
@@ -177,38 +179,29 @@ export default function ProjectsPage() {
                     }
                     required
                   />
-                  <Select
-                    onValueChange={(value) =>
-                      setNewProject({ ...newProject, clientId: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Client" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clients.map((client) => (
-                        <SelectItem key={client.id} value={client.id}>
-                          {client.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select
-                    onValueChange={(value) =>
-                      setNewProject({ ...newProject, ownerId: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Owner (optional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {users.map((user) => (
-                        <SelectItem key={user.id} value={user.id}>
-                          {user.name ?? user.email ?? "Unnamed user"}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">
+                      Client <span className="text-red-500">*</span>
+                    </label>
+                    <Select
+                      value={newProject.clientId}
+                      onValueChange={(value) =>
+                        setNewProject({ ...newProject, clientId: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Client" />
+                      </SelectTrigger>
+                      <SelectContent className="dark:bg-gray-800">
+                        {clients.map((client) => (
+                          <SelectItem key={client.id} value={client.id}>
+                            {client.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
                   <Input
                     type="date"
                     value={newProject.dueDate}
@@ -216,7 +209,7 @@ export default function ProjectsPage() {
                       setNewProject({ ...newProject, dueDate: e.target.value })
                     }
                   />
-                  <Button type="submit">
+                  <Button type="submit" className="w-full">
                     <Plus className="size-4 mr-2" />
                     Create Project
                   </Button>
@@ -229,49 +222,46 @@ export default function ProjectsPage() {
 
             {projects.length > 0 ? (
               projects.map((project) => (
-                <Card key={project.id}>
+                <Card key={project.id} className="flex flex-col">
                   <CardHeader>
                     <CardTitle>{project.name}</CardTitle>
                     <CardDescription>
                       {project.client?.name}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">Owner: {project.owner?.name}</p>
-                    <p className="text-sm text-muted-foreground">Due Date: {project.dueDate ? new Date(project.dueDate).toLocaleDateString() : 'N/A'}</p>
+                  <CardContent className="flex-grow">
+                    <p className="text-sm text-muted-foreground">Owner: {project.owner?.name || 'Unassigned'}</p>
+                    <p className="text-sm text-muted-foreground">Due: {project.dueDate ? new Date(project.dueDate).toLocaleDateString() : 'N/A'}</p>
                   </CardContent>
                   <CardFooter className="flex items-center justify-between gap-2">
-                    <span className="rounded border px-2 py-0.5 text-xs font-medium">
+                    <span className="rounded-md border px-2.5 py-0.5 text-sm font-medium">
                       {project.status}
                     </span>
                     <Button
                       type="button"
-                      variant="outline"
+                      variant="destructive"
                       size="sm"
                       onClick={() => handleDeleteProject(project.id)}
                       disabled={deletingProjectId === project.id}
+                      aria-label={`Delete project ${project.name}`}
                     >
-                      <Trash2 className="size-4 mr-2" />
-                      {deletingProjectId === project.id ? "Deleting..." : "Delete"}
+                      <Trash2 className="size-4" />
                     </Button>
                   </CardFooter>
                 </Card>
               ))
             ) : (
-              <Card className="md:col-span-2 lg:col-span-3">
-                <CardHeader>
-                  <CardTitle>No Projects Yet</CardTitle>
-                  <CardDescription>Create your first project to get started</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground mb-4">
-                    Projects help you organize your work. Create a project to start tracking tasks and collaborating with your team.
+              <Card className="md:col-span-2 lg:col-span-3 xl:col-span-3">
+                <CardContent className="flex flex-col items-center justify-center text-center h-full p-6">
+                  <h3 className="text-lg font-semibold">No Projects Yet</h3>
+                  <p className="text-muted-foreground mt-2">
+                    Create your first project to get started.
                   </p>
                 </CardContent>
               </Card>
             )}
             {deleteError ? (
-              <p className="text-sm text-red-600 md:col-span-2 lg:col-span-3">{deleteError}</p>
+              <p className="text-sm text-red-600 md:col-span-2 lg:col-span-3 xl:col-span-4">{deleteError}</p>
             ) : null}
           </div>
         </div>

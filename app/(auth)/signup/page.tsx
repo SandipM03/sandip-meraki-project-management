@@ -40,10 +40,6 @@ export default function SignUpPage() {
       return;
     }
 
-    if (!agreeToTerms) {
-      setError('Please agree to the terms and conditions');
-      return;
-    }
 
     setIsLoading(true);
 

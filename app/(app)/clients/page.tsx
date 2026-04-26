@@ -225,7 +225,7 @@ export default function ClientsPage() {
   return (
     <>
       <Navbar />
-      <main className="flex-1 overflow-y-auto p-6">
+      <main className="flex-1 overflow-y-auto p-6 bg-gray-50/50 dark:bg-gray-900/50">
         <div className="space-y-6">
           <div>
             <h1 className="text-3xl font-bold">Clients</h1>
@@ -368,7 +368,7 @@ export default function ClientsPage() {
             </Kanban>
           </div>
 
-          {/* Project Dialog */}
+        
           <Dialog open={isProjectDialogOpen} onOpenChange={setIsProjectDialogOpen}>
             <DialogContent>
               <DialogHeader>

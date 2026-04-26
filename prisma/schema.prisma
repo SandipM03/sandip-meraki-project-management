@@ -115,8 +115,8 @@ model Task {
   assignedToId String?
   createdById  String
 
-  projectId   String
-  clientId    String
+  projectId   String?
+  clientId    String?
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -125,8 +125,8 @@ model Task {
   assignedTo User? @relation("AssignedTasks", fields: [assignedToId], references: [id])
   createdBy  User  @relation("CreatedTasks", fields: [createdById], references: [id])
 
-  project Project @relation(fields: [projectId], references: [id])
-  client  Client  @relation(fields: [clientId], references: [id])
+  project Project? @relation(fields: [projectId], references: [id])
+  client  Client?  @relation(fields: [clientId], references: [id])
 
   comments   Comment[]
   activities Activity[]

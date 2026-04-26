@@ -168,32 +168,29 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (!projectId) {
-    return NextResponse.json(
-      { error: { message: "Project is required" } },
-      { status: 400 }
-    );
-  }
+  let clientId = clientIdValue ?? undefined;
 
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
-    select: { id: true, clientId: true },
-  });
+  if (projectId) {
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true, clientId: true },
+    });
 
-  if (!project) {
-    return NextResponse.json(
-      { error: { message: "Project not found" } },
-      { status: 404 }
-    );
-  }
+    if (!project) {
+      return NextResponse.json(
+        { error: { message: "Project not found" } },
+        { status: 404 }
+      );
+    }
 
-  const clientId = clientIdValue ?? project.clientId;
+    clientId = clientIdValue ?? project.clientId;
 
-  if (clientId !== project.clientId) {
-    return NextResponse.json(
-      { error: { message: "Project and client do not match" } },
-      { status: 400 }
-    );
+    if (clientId !== project.clientId) {
+      return NextResponse.json(
+        { error: { message: "Project and client do not match" } },
+        { status: 400 }
+      );
+    }
   }
 
   if (assignedToIdValue) {
@@ -226,8 +223,8 @@ export async function POST(request: NextRequest) {
       dueDate,
       assignedToId: assignedToIdValue || null,
       createdById: currentUserId,
-      projectId,
-      clientId,
+      projectId: projectId || null,
+      clientId: clientId || null,
     },
     select: {
       id: true,

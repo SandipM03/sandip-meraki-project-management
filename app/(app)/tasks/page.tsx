@@ -4,16 +4,10 @@ import { useSession } from "@/lib/auth-client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Navbar } from "@/components/navbar";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Check, Plus, UserRound } from "lucide-react";
+import { Plus, Trash2, Edit, User, Calendar, Tag, Flag } from "lucide-react";
 
 type TaskStatus = "TODO" | "DOING" | "DONE";
 
@@ -177,20 +171,9 @@ export default function TasksPage() {
       return;
     }
 
-    if (!projectId) {
-      setError("Select a project first.");
-      return;
-    }
-
     try {
       setIsSubmitting(true);
       setError(null);
-
-      const selectedProject = projects.find((project) => project.id === projectId);
-      if (!selectedProject) {
-        setError("Project not found.");
-        return;
-      }
 
       const response = await fetch("/api/tasks", {
         method: "POST",
@@ -201,8 +184,8 @@ export default function TasksPage() {
         body: JSON.stringify({
           title: title.trim(),
           description: description.trim(),
-          projectId: selectedProject.id,
-          clientId: selectedProject.clientId,
+          projectId: projectId || null,
+          clientId: projectId ? projects.find((project) => project.id === projectId)?.clientId : null,
           assignedToId: assignedToId || null,
           status,
           dueDate: dueDate || null,
@@ -228,6 +211,7 @@ export default function TasksPage() {
       setAssignedToId("");
       setStatus("TODO");
       setDueDate("");
+      setProjectId("");
 
       await loadTasks();
     } catch {
@@ -275,6 +259,41 @@ export default function TasksPage() {
     }
   };
 
+  const deleteTask = async (taskId: string) => {
+    if (!confirm("Are you sure you want to delete this task?")) {
+      return;
+    }
+
+    try {
+      setUpdatingTaskId(taskId);
+      setError(null);
+
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (response.status === 401) {
+        router.push("/signin");
+        return;
+      }
+
+      if (!response.ok) {
+        const errorPayload = (await response.json()) as {
+          error?: { message?: string };
+        };
+        setError(errorPayload.error?.message || "Could not delete task.");
+        return;
+      }
+
+      await loadTasks();
+    } catch {
+      setError("Could not delete task.");
+    } finally {
+      setUpdatingTaskId(null);
+    }
+  };
+
   if (isPending) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
@@ -286,13 +305,13 @@ export default function TasksPage() {
   return (
     <>
       <Navbar />
-      <main className="flex-1 overflow-y-auto p-6">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+      <main className="flex-1 overflow-y-auto p-6 bg-gray-50/50 dark:bg-gray-900/50">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h1 className="text-3xl font-bold">Tasks</h1>
-              <p className="mt-2 text-muted-foreground">
-                Create tasks, update status, and assign to yourself or teammates.
+              <h1 className="text-2xl font-bold">Tasks</h1>
+              <p className="mt-1 text-muted-foreground">
+                Create, update, and assign tasks to yourself or teammates.
               </p>
             </div>
           </div>
@@ -300,15 +319,16 @@ export default function TasksPage() {
           <Card>
             <CardHeader>
               <CardTitle>Create Task</CardTitle>
-              <CardDescription>Add a task and assign ownership immediately.</CardDescription>
+              <CardDescription>Add a new task to your project.</CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={createTask} className="flex flex-col gap-3">
-                <div className="grid gap-3 md:grid-cols-2">
+              <form onSubmit={createTask} className="flex flex-col gap-4">
+                <div className="grid gap-4 md:grid-cols-2">
                   <Input
                     placeholder="Task title"
                     value={title}
                     onChange={(event) => setTitle(event.target.value)}
+                    required
                   />
                   <Input
                     placeholder="Description (optional)"
@@ -316,30 +336,28 @@ export default function TasksPage() {
                     onChange={(event) => setDescription(event.target.value)}
                   />
                 </div>
-                <div className="grid gap-3 md:grid-cols-4">
-                  <label className="flex flex-col gap-1 text-sm">
-                    <span className="text-muted-foreground">Project</span>
+                <div className="grid gap-4 md:grid-cols-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-muted-foreground">Project</label>
                     <select
                       value={projectId}
                       onChange={(event) => setProjectId(event.target.value)}
-                      className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                      className="h-10 rounded-md border border-input dark:bg-gray-800 px-3 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                     >
-                      {projects.length === 0 ? (
-                        <option value="">No projects</option>
-                      ) : null}
+                      <option value="">No Project</option>
                       {projects.map((project) => (
-                        <option key={project.id} value={project.id}>
-                          {project.name} ({project.clientName})
+                        <option key={project.id} value={project.id} >
+                          {project.name}
                         </option>
                       ))}
                     </select>
-                  </label>
-                  <label className="flex flex-col gap-1 text-sm">
-                    <span className="text-muted-foreground">Assignee</span>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-muted-foreground">Assignee</label>
                     <select
                       value={assignedToId}
                       onChange={(event) => setAssignedToId(event.target.value)}
-                      className="h-8 rounded-lg border border-input bg-white text-gray-600 px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                      className="h-10 rounded-md border border-input dark:bg-gray-800 px-3 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                     >
                       <option value="">Unassigned</option>
                       {users.map((user) => (
@@ -348,41 +366,38 @@ export default function TasksPage() {
                         </option>
                       ))}
                     </select>
-                  </label>
-                  <label className="flex flex-col gap-1 text-sm">
-                    <span className="text-muted-foreground">Status</span>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-muted-foreground">Status</label>
                     <select
                       value={status}
                       onChange={(event) => setStatus(event.target.value as TaskStatus)}
-                      className="h-8 rounded-lg border border-input bg-white text-gray-600 px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                      className="h-10 rounded-md border border-input dark:bg-gray-800 px-3 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                     >
                       <option value="TODO">Todo</option>
                       <option value="DOING">Doing</option>
                       <option value="DONE">Done</option>
                     </select>
-                  </label>
-                  <label className="flex flex-col gap-1 text-sm">
-                    <span className="text-muted-foreground">Due Date</span>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-muted-foreground">Due Date</label>
                     <Input
                       type="date"
                       value={dueDate}
+                      className="dark:bg-gray-800 h-10"
                       onChange={(event) => setDueDate(event.target.value)}
                     />
-                  </label>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
                     type="submit"
-                    disabled={isSubmitting || projects.length === 0}
+                    disabled={isSubmitting}
+                    className="gap-2 border border-2px"
                   >
-                    <Plus data-icon="inline-start" />
+                    <Plus className="size-4" />
                     {isSubmitting ? "Creating..." : "Create Task"}
                   </Button>
-                  {projects.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      Create a project first before adding tasks.
-                    </p>
-                  ) : null}
                 </div>
               </form>
             </CardContent>
@@ -403,77 +418,63 @@ export default function TasksPage() {
               ) : null}
 
               {!isLoadingTasks && tasks.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No tasks found.</p>
+                <div className="text-center py-10">
+                  <p className="text-muted-foreground">No tasks found. Create one to get started!</p>
+                </div>
               ) : null}
 
-              <ul className="flex flex-col gap-3">
+              <ul className="flex flex-col gap-4">
                 {tasks.map((task) => {
                   const isUpdating = updatingTaskId === task.id;
                   const isMine = currentUserId !== null && task.assignedToId === currentUserId;
 
                   return (
-                    <li key={task.id} className="rounded-lg border p-3">
-                      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                        <div className="flex flex-col gap-1">
-                          <p className="font-medium">{task.title}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {task.project.name} • {task.client.name}
-                          </p>
-                          {task.description ? (
-                            <p className="text-sm text-muted-foreground">{task.description}</p>
-                          ) : null}
-                          <p className="text-xs text-muted-foreground">
-                            Assigned to: {task.assignedTo ? displayUser(task.assignedTo) : "Unassigned"}
-                          </p>
+                    <li key={task.id} className="flex items-start justify-between gap-4 p-4 rounded-lg border bg-card text-card-foreground shadow-sm transition-all">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold">{task.title}</p>
+                        <p className="text-sm text-muted-foreground mt-1">{task.description}</p>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground mt-3">
+                          <span className="flex items-center gap-1.5"><Tag className="size-3" />{task.project?.name || 'No Project'}</span>
+                          <span className="flex items-center gap-1.5"><User className="size-3" />{task.assignedTo ? displayUser(task.assignedTo) : 'Unassigned'}</span>
+                          <span className="flex items-center gap-1.5"><Calendar className="size-3" />{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No due date'}</span>
+                          <span className="flex items-center gap-1.5"><Flag className="size-3" />{statusLabel(task.status)}</span>
                         </div>
+                      </div>
 
-                        <div className="grid gap-2 md:grid-cols-3 md:items-center">
-                          <select
-                            value={task.status}
-                            disabled={isUpdating}
-                            onChange={(event) =>
-                              patchTask(task.id, {
-                                status: event.target.value as TaskStatus,
-                              })
-                            }
-                            className="h-8 min-w-[120px] rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                          >
-                            <option value="TODO">{statusLabel("TODO")}</option>
-                            <option value="DOING">{statusLabel("DOING")}</option>
-                            <option value="DONE">{statusLabel("DONE")}</option>
-                          </select>
-
-                          <select
-                            value={task.assignedToId || ""}
-                            disabled={isUpdating}
-                            onChange={(event) =>
-                              patchTask(task.id, {
-                                assignedToId: event.target.value || null,
-                              })
-                            }
-                            className="h-8 min-w-[180px] rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                          >
-                            <option value="">Unassigned</option>
-                            {users.map((user) => (
-                              <option key={user.id} value={user.id}>
-                                {displayUser(user)}
-                              </option>
-                            ))}
-                          </select>
-
-                          <Button
-                            variant="outline"
-                            disabled={isUpdating || isMine || !currentUserId}
-                            onClick={() => patchTask(task.id, { assignedToId: currentUserId })}
-                          >
-                            {isMine ? (
-                              <Check data-icon="inline-start" />
-                            ) : (
-                              <UserRound data-icon="inline-start" />
-                            )}
-                            {isMine ? "Assigned to me" : "Assign to me"}
-                          </Button>
-                        </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <select
+                          value={task.status}
+                          onChange={(e) => patchTask(task.id, { status: e.target.value as TaskStatus })}
+                          disabled={isUpdating}
+                          className="h-9 rounded-md border border-input dark:bg-gray-800 px-2 text-sm"
+                        >
+                          <option value="TODO">Todo</option>
+                          <option value="DOING">Doing</option>
+                          <option value="DONE">Done</option>
+                        </select>
+                        <select
+                          value={task.assignedToId || ""}
+                          onChange={(e) => patchTask(task.id, { assignedToId: e.target.value || null })}
+                          disabled={isUpdating}
+                          className="h-9 rounded-md border border-input dark:bg-gray-800 px-2 text-sm"
+                        >
+                          <option value="">Unassigned</option>
+                          {users.map((user) => (
+                            <option key={user.id} value={user.id}>
+                              {displayUser(user)}
+                            </option>
+                          ))}
+                        </select>
+                        
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          onClick={() => deleteTask(task.id)}
+                          disabled={isUpdating}
+                          aria-label="Delete task"
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
                       </div>
                     </li>
                   );

@@ -134,3 +134,34 @@ export async function PATCH(request: NextRequest, context: PatchContext) {
     { status: 200 }
   );
 }
+
+export async function DELETE(request: NextRequest, context: PatchContext) {
+  const currentUserId = await getCurrentUserId(request);
+
+  if (!currentUserId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { taskId } = await context.params;
+  if (!taskId) {
+    return NextResponse.json({ error: "Task id is required" }, { status: 400 });
+  }
+
+  const existing = await prisma.task.findUnique({
+    where: { id: taskId },
+    select: { id: true },
+  });
+
+  if (!existing) {
+    return NextResponse.json({ error: "Task not found" }, { status: 404 });
+  }
+
+  await prisma.task.delete({
+    where: { id: taskId },
+  });
+
+  return NextResponse.json(
+    { data: { message: "Task deleted successfully" } },
+    { status: 200 }
+  );
+}
