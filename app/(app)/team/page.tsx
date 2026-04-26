@@ -110,7 +110,7 @@ export default function TeamPage() {
 
   useEffect(() => {
     if (!isPending && !session) {
-      router.push("/login");
+      router.push("/signin");
     }
   }, [session, isPending, router]);
 
@@ -133,7 +133,7 @@ export default function TeamPage() {
         });
 
         if (response.status === 401) {
-          router.push("/login");
+          router.push("/signin");
           return;
         }
 
@@ -201,7 +201,7 @@ export default function TeamPage() {
       });
 
       if (response.status === 401) {
-        router.push("/login");
+        router.push("/signin");
         return;
       }
 
