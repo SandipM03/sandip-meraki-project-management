@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { ClientStatus, ProjectStatus } from "@prisma/client";
+import { ClientStatus, ProjectStatus } from "@/generated/prisma/client";
 
 export async function getClients() {
   try {

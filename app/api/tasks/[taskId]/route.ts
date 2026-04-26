@@ -1,6 +1,6 @@
 import { getCurrentUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { TaskStatus } from "@prisma/client";
+import { TaskStatus } from "@/generated/prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 function parseStatus(value: unknown): TaskStatus | null {

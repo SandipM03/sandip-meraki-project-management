@@ -29,7 +29,7 @@ export async function DELETE(request: NextRequest, context: DeleteContext) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: any) => {
     await tx.comment.deleteMany({
       where: {
         task: {

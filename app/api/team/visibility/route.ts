@@ -1,6 +1,6 @@
 import { AUTH_COOKIE_NAME, verifyAuthToken } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { TaskStatus } from "@prisma/client";
+import { TaskStatus } from "@/generated/prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 type TeamTask = {
