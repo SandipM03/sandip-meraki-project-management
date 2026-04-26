@@ -2,6 +2,50 @@ import { AUTH_COOKIE_NAME, hashPassword, signAuthToken, verifyAuthToken, verifyP
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
+type AuthErrorCode =
+	| "AUTH_CONFIG_JWT_SECRET_MISSING"
+	| "AUTH_CONFIG_DATABASE_URL_MISSING"
+	| "AUTH_DATABASE_UNAVAILABLE"
+	| "AUTH_UNEXPECTED_ERROR";
+
+function getAuthErrorDetails(error: unknown): { code: AuthErrorCode; message: string } {
+	if (!process.env.JWT_SECRET) {
+		return {
+			code: "AUTH_CONFIG_JWT_SECRET_MISSING",
+			message: "Server auth secret is missing",
+		};
+	}
+
+	if (!process.env.DATABASE_URL) {
+		return {
+			code: "AUTH_CONFIG_DATABASE_URL_MISSING",
+			message: "Database URL is missing",
+		};
+	}
+
+	const maybeError = error as { message?: string; code?: string } | null;
+	const message = (maybeError?.message || "").toLowerCase();
+	const code = (maybeError?.code || "").toUpperCase();
+
+	if (
+		message.includes("database") ||
+		message.includes("connect") ||
+		message.includes("timeout") ||
+		message.includes("prisma") ||
+		["ECONNREFUSED", "ENOTFOUND", "ETIMEDOUT", "P1000", "P1001", "P1002"].includes(code)
+	) {
+		return {
+			code: "AUTH_DATABASE_UNAVAILABLE",
+			message: "Database is unavailable",
+		};
+	}
+
+	return {
+		code: "AUTH_UNEXPECTED_ERROR",
+		message: "Unexpected auth error",
+	};
+}
+
 function getAction(request: NextRequest): string {
 	const segments = request.nextUrl.pathname.split("/").filter(Boolean);
 	return segments.slice(2).join("/");
@@ -146,9 +190,10 @@ export async function POST(request: NextRequest) {
 
 		return NextResponse.json({ error: "Not found" }, { status: 404 });
 	} catch (error) {
-		console.error("Auth route error:", error);
+		const details = getAuthErrorDetails(error);
+		console.error("Auth route error:", details.code, error);
 		return NextResponse.json(
-			{ error: { message: "Auth service misconfigured or unavailable" } },
+			{ error: { message: details.message, code: details.code } },
 			{ status: 500 }
 		);
 	}
