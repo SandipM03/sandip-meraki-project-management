@@ -34,3 +34,25 @@ export async function verifyPassword(
 ): Promise<boolean> {
   return bcrypt.compare(password, hashedPassword);
 }
+
+export async function getCurrentUserId(
+  request: Request
+): Promise<string | null> {
+  const cookieHeader = request.headers.get("cookie");
+  if (!cookieHeader) return null;
+
+  const cookies = Object.fromEntries(
+    cookieHeader.split("; ").map((c) => c.split("="))
+  );
+  const token = cookies[AUTH_COOKIE_NAME];
+
+  if (!token) return null;
+  const payload = verifyAuthToken(token);
+  if (!payload) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { id: payload.sub },
+    select: { id: true },
+  });
+  return user?.id ?? null;
+}
