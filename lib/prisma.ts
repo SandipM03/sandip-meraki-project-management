@@ -13,10 +13,16 @@ if (!databaseUrl) {
   throw new Error("DATABASE_URL is not set");
 }
 
+const parsedDatabaseUrl = new URL(databaseUrl);
+const shouldUseSsl =
+  process.env.DATABASE_SSL === "true" ||
+  parsedDatabaseUrl.hostname.endsWith("supabase.co");
+
 const pool =
   globalForPrisma.pool ||
   new Pool({
     connectionString: databaseUrl,
+    ssl: shouldUseSsl ? { rejectUnauthorized: false } : undefined,
   });
 
 const adapter = new PrismaPg(pool);

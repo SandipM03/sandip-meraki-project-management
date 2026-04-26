@@ -3,8 +3,11 @@ import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";
 
 export const AUTH_COOKIE_NAME = process.env.AUTH_COOKIE_NAME || "auth_token";
-const JWT_SECRET =
-  process.env.JWT_SECRET || "";
+const JWT_SECRET = process.env.JWT_SECRET ?? "";
+
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET is not set");
+}
 
 export type SessionPayload = {
   sub: string;
@@ -18,7 +21,18 @@ export function signAuthToken(payload: SessionPayload): string {
 
 export function verifyAuthToken(token: string): SessionPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as SessionPayload;
+    const payload = jwt.verify(token, JWT_SECRET);
+    if (
+      typeof payload === "object" &&
+      payload !== null &&
+      "sub" in payload &&
+      "email" in payload &&
+      typeof payload.sub === "string" &&
+      typeof payload.email === "string"
+    ) {
+      return payload as SessionPayload;
+    }
+    return null;
   } catch {
     return null;
   }

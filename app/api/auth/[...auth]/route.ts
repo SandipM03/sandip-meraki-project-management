@@ -51,97 +51,105 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-	const action = getAction(request);
+	try {
+		const action = getAction(request);
 
-	if (action === "sign-up/email") {
-		const body = await request.json();
-		const name = typeof body.name === "string" ? body.name.trim() : "";
-		const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
-		const password = typeof body.password === "string" ? body.password : "";
+		if (action === "sign-up/email") {
+			const body = await request.json();
+			const name = typeof body.name === "string" ? body.name.trim() : "";
+			const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+			const password = typeof body.password === "string" ? body.password : "";
 
-		if (!email || !password || password.length < 8) {
-			return NextResponse.json(
-				{ error: { message: "Invalid signup data" } },
-				{ status: 400 }
-			);
+			if (!email || !password || password.length < 8) {
+				return NextResponse.json(
+					{ error: { message: "Invalid signup data" } },
+					{ status: 400 }
+				);
+			}
+
+			const existing = await prisma.user.findUnique({ where: { email } });
+			if (existing) {
+				return NextResponse.json(
+					{ error: { message: "Email already in use" } },
+					{ status: 409 }
+				);
+			}
+
+			const hashed = await hashPassword(password);
+			const user = await prisma.user.create({
+				data: {
+					email,
+					name: name || null,
+					password: hashed,
+				},
+				select: { id: true, email: true, name: true },
+			});
+
+			const token = signAuthToken({
+				sub: user.id,
+				email: user.email,
+				name: user.name,
+			});
+
+			const response = NextResponse.json({ data: { user } }, { status: 200 });
+			setAuthCookie(response, token);
+			return response;
 		}
 
-		const existing = await prisma.user.findUnique({ where: { email } });
-		if (existing) {
-			return NextResponse.json(
-				{ error: { message: "Email already in use" } },
-				{ status: 409 }
+		if (action === "sign-in/email") {
+			const body = await request.json();
+			const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+			const password = typeof body.password === "string" ? body.password : "";
+
+			if (!email || !password) {
+				return NextResponse.json(
+					{ error: { message: "Invalid login data" } },
+					{ status: 400 }
+				);
+			}
+
+			const user = await prisma.user.findUnique({ where: { email } });
+			if (!user?.password) {
+				return NextResponse.json(
+					{ error: { message: "Invalid email or password" } },
+					{ status: 401 }
+				);
+			}
+
+			const isValid = await verifyPassword(password, user.password);
+			if (!isValid) {
+				return NextResponse.json(
+					{ error: { message: "Invalid email or password" } },
+					{ status: 401 }
+				);
+			}
+
+			const token = signAuthToken({
+				sub: user.id,
+				email: user.email,
+				name: user.name,
+			});
+
+			const response = NextResponse.json(
+				{ data: { user: { id: user.id, email: user.email, name: user.name } } },
+				{ status: 200 }
 			);
+			setAuthCookie(response, token);
+			return response;
 		}
 
-		const hashed = await hashPassword(password);
-		const user = await prisma.user.create({
-			data: {
-				email,
-				name: name || null,
-				password: hashed,
-			},
-			select: { id: true, email: true, name: true },
-		});
-
-		const token = signAuthToken({
-			sub: user.id,
-			email: user.email,
-			name: user.name,
-		});
-
-		const response = NextResponse.json({ data: { user } }, { status: 200 });
-		setAuthCookie(response, token);
-		return response;
-	}
-
-	if (action === "sign-in/email") {
-		const body = await request.json();
-		const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
-		const password = typeof body.password === "string" ? body.password : "";
-
-		if (!email || !password) {
-			return NextResponse.json(
-				{ error: { message: "Invalid login data" } },
-				{ status: 400 }
-			);
+		if (action === "sign-out") {
+			const response = NextResponse.json({ data: { success: true } }, { status: 200 });
+			response.cookies.delete(AUTH_COOKIE_NAME);
+			return response;
 		}
 
-		const user = await prisma.user.findUnique({ where: { email } });
-		if (!user?.password) {
-			return NextResponse.json(
-				{ error: { message: "Invalid email or password" } },
-				{ status: 401 }
-			);
-		}
-
-		const isValid = await verifyPassword(password, user.password);
-		if (!isValid) {
-			return NextResponse.json(
-				{ error: { message: "Invalid email or password" } },
-				{ status: 401 }
-			);
-		}
-
-		const token = signAuthToken({
-			sub: user.id,
-			email: user.email,
-			name: user.name,
-		});
-
-		const response = NextResponse.json(
-			{ data: { user: { id: user.id, email: user.email, name: user.name } } },
-			{ status: 200 }
+		return NextResponse.json({ error: "Not found" }, { status: 404 });
+	} catch (error) {
+		console.error("Auth route error:", error);
+		return NextResponse.json(
+			{ error: { message: "Auth service misconfigured or unavailable" } },
+			{ status: 500 }
 		);
-		setAuthCookie(response, token);
-		return response;
 	}
-
-	if (action === "sign-out") {
-		const response = NextResponse.json({ data: { success: true } }, { status: 200 });
-		response.cookies.delete(AUTH_COOKIE_NAME);
-		return response;
-	}
-
-	return NextResponse.json({ error: "Not found" }, { status: 404 });
 }
