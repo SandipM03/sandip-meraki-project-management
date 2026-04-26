@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { ClientStatus, ProjectStatus } from "@prisma/client";
 
 export async function getClients() {
   try {
@@ -87,12 +88,15 @@ export async function createClient(name: string, status: string = "ACTIVE") {
 
 export async function updateClient(
   id: string,
-  updates: { name?: string; status?: string }
+  updates: { name?: string; status?: ClientStatus }
 ) {
   try {
     const client = await prisma.client.update({
       where: { id },
-      data: updates,
+      data: {
+        ...(updates.name !== undefined && { name: updates.name }),
+        ...(updates.status !== undefined && { status: updates.status }),
+      },
       include: {
         projects: true,
         _count: {
@@ -180,12 +184,16 @@ export async function createProject(
 
 export async function updateProject(
   id: string,
-  updates: { name?: string; status?: string; dueDate?: Date }
+  updates: { name?: string; status?: ProjectStatus; dueDate?: Date }
 ) {
   try {
     const project = await prisma.project.update({
       where: { id },
-      data: updates,
+      data: {
+        ...(updates.name !== undefined && { name: updates.name }),
+        ...(updates.status !== undefined && { status: updates.status }),
+        ...(updates.dueDate !== undefined && { dueDate: updates.dueDate }),
+      },
       include: {
         owner: true,
         client: true,

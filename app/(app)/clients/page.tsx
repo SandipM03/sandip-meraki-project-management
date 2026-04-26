@@ -87,7 +87,7 @@ export default function ClientsPage() {
     setLoading(true);
     setError(null);
     const result = await getClients();
-    if (result.success) {
+    if (result.success && result.data) {
       const clientsByStatus = {
         ACTIVE: result.data.filter((c: ClientWithData) => c.status === "ACTIVE"),
         AT_RISK: result.data.filter((c: ClientWithData) => c.status === "AT_RISK"),
