@@ -101,7 +101,7 @@ Open [http://localhost:3000](http://localhost:3000). Sign up, create a client â†
 DATABASE_URL=postgresql://...
 JWT_SECRET=your-secret-key
 AUTH_COOKIE_NAME=auth_token
-NEXT_PUBLIC_BETTER_AUTH_URL=http://localhost:3000
+
 ```
 
 ## Tech Stack
